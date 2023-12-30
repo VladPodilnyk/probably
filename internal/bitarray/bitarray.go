@@ -19,6 +19,20 @@ func (array *BitArray) Set(bit uint) {
 	array.data[index] |= 1 << (bit % 8)
 }
 
+func (array *BitArray) Merge(value *BitArray) {
+	for i := range array.data {
+		array.data[i] |= value.data[i]
+	}
+}
+
+func (array *BitArray) Union(value *BitArray) *BitArray {
+	result := make([]byte, len(array.data))
+	for i := range array.data {
+		result[i] = array.data[i] | value.data[i]
+	}
+	return &BitArray{data: result}
+}
+
 func (array *BitArray) IsSet(bit uint) bool {
 	index := bit / 8
 	return array.data[index]&(1<<(bit%8)) != 0

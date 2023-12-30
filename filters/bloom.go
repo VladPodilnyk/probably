@@ -4,6 +4,8 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"encoding/binary"
+	"errors"
+	"hash"
 	"math"
 
 	"github.com/probably/internal/bitarray"
@@ -15,13 +17,21 @@ type BloomFilter struct {
 	bitarray       *bitarray.BitArray
 	numberOfBits   uint
 	numberOfHashes uint
+	filterSize     uint
+	fpRate         float64
 }
 
 func NewBloomFilter(size uint, fpRate float64) BloomFilter {
 	array_bits := calculateFilterSize(size, fpRate)
 	array := bitarray.New(array_bits)
 	hashes := calculateNumberOfHashes(size, array_bits)
-	return BloomFilter{bitarray: array, numberOfBits: array_bits, numberOfHashes: hashes}
+	return BloomFilter{
+		bitarray:       array,
+		numberOfBits:   array_bits,
+		numberOfHashes: hashes,
+		filterSize:     size,
+		fpRate:         fpRate,
+	}
 }
 
 func (filter BloomFilter) Add(data []byte) {
@@ -43,17 +53,39 @@ func (filter BloomFilter) Contains(data []byte) bool {
 	return true
 }
 
-func (filter BloomFilter) Merge(value BloomFilter) {}
+func (filter BloomFilter) Merge(value BloomFilter) error {
+	if filter.filterSize != value.filterSize || filter.fpRate != value.fpRate {
+		return errors.New("BloomFilters must have the same configuration (size and fpRate)")
+	}
+	filter.bitarray.Merge(value.bitarray)
+	return nil
+}
 
-func (filter BloomFilter) Union(value BloomFilter) {}
+func (filter BloomFilter) Union(value BloomFilter) (BloomFilter, error) {
+	if filter.filterSize != value.filterSize || filter.fpRate != value.fpRate {
+		return BloomFilter{}, errors.New("BloomFilters must have the same configuration (size and fpRate)")
+	}
+	union := filter.bitarray.Union(value.bitarray)
+	return BloomFilter{
+		bitarray:       union,
+		numberOfBits:   filter.numberOfBits,
+		numberOfHashes: filter.numberOfHashes,
+		filterSize:     filter.filterSize,
+		fpRate:         filter.fpRate,
+	}, nil
+}
+
+func (filter BloomFilter) Size() uint {
+	return filter.filterSize
+}
 
 func (filter BloomFilter) Clear() {
 	filter.bitarray.Clear()
 }
 
 func hashGenerator(value []byte, hashMapSize uint) func(uint) uint {
-	index := getMd5Hash(value)
-	offset := getSha1Hash(value)
+	index := getHashValue(value, md5.New())
+	offset := getHashValue(value, sha1.New())
 
 	return func(i uint) uint {
 		index = (index + offset) % hashMapSize
@@ -62,15 +94,9 @@ func hashGenerator(value []byte, hashMapSize uint) func(uint) uint {
 	}
 }
 
-// TODO: abstract this into a common functino that does clamping
-func getMd5Hash(value []byte) uint {
-	fullHash := md5.Sum(value)
-	return uint(binary.LittleEndian.Uint32(fullHash[:HASH_CLAMP_VALUE]))
-}
-
-func getSha1Hash(value []byte) uint {
-	fullHash := sha1.Sum(value)
-	return uint(binary.LittleEndian.Uint32(fullHash[:HASH_CLAMP_VALUE]))
+func getHashValue(data []byte, hashFunc hash.Hash) uint {
+	hash := hashFunc.Sum(data)
+	return uint(binary.LittleEndian.Uint32(hash[:HASH_CLAMP_VALUE]))
 }
 
 func calculateFilterSize(filterSize uint, fpRate float64) uint {
