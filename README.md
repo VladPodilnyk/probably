@@ -10,7 +10,7 @@ positive rate.
 
 ```go
 import (
-    "github.com/probably/filters"
+    "github.com/vladpodilnyk/probably"
 )
 
 func main() {
