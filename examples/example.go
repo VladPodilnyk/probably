@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/probably/filters"
+	"github.com/vladpodilnyk/probably/filters"
 )
 
 func main() {

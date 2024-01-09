@@ -10,7 +10,7 @@ import (
 	"hash"
 	"math"
 
-	"github.com/probably/internal/bitarray"
+	"github.com/vladpodilnyk/probably/internal/bitarray"
 )
 
 const hashClampValue = 4
