@@ -2,9 +2,13 @@ package main
 
 import (
 	"fmt"
+
+	"github.com/probably/filters"
 )
 
 func main() {
-	// TODO: Example usage of the BloomFilter
-	fmt.Println("Hello, world!")
+	bloomFilter := filters.NewBloomFilter(4, 0.001)
+	bloomFilter.Add([]byte("hello"))
+	bloomFilter.Add([]byte("world"))
+	fmt.Println(bloomFilter.Contains([]byte("another world"))) // false
 }

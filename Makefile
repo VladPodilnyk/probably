@@ -1,5 +1,5 @@
 # runs example
-.PHONY
+.PHONY: run-example
 run-example:
 	@echo "Running example"
 	go run ./examples/example.go
